@@ -31,9 +31,7 @@ class Library:
         return [book for book, details in self.books.items() if details["available"]]
 
     def check_availability(self, book_name):
-        if book_name in self.books:
-            return self.books[book_name]
-        return None
+        return self.books.get(book_name)
 
     def borrow_book(self, book_name, user):
         if book_name in self.books:
@@ -41,11 +39,11 @@ class Library:
                 self.books[book_name]["available"] = False
                 self.books[book_name]["borrowed_by"] = user
                 self.history.append(f"{user} borrowed '{book_name}'.")
-                return f"You have borrowed '{book_name}'."
+                return f"You have successfully borrowed '{book_name}'."
             else:
                 return f"'{book_name}' is currently borrowed by {self.books[book_name]['borrowed_by']}."
         else:
-            return "This book is not available in our library."
+            return f"The book '{book_name}' is not available in our library."
 
     def return_book(self, book_name, user):
         if book_name in self.books:
@@ -53,11 +51,11 @@ class Library:
                 self.books[book_name]["available"] = True
                 self.books[book_name]["borrowed_by"] = None
                 self.history.append(f"{user} returned '{book_name}'.")
-                return f"You have returned '{book_name}'."
+                return f"You have successfully returned '{book_name}'."
             else:
                 return f"You did not borrow '{book_name}'."
         else:
-            return "This book is not available in our library."
+            return f"The book '{book_name}' is not available in our library."
 
     def extract_book_name(self, user_input):
         for book in self.books.keys():
@@ -109,20 +107,10 @@ def chatbot():
     library = Library()
     print("Chatbot: Hello! Welcome to the Library Management Chatbot!")
     print("Chatbot:", library.greet_user())
-    print("Chatbot: Here are some available books you can choose from:")
-    
-    available_books = library.list_books()
-    if available_books:
-        print("Chatbot: Available books:", ", ".join(available_books))
-    else:
-        print("Chatbot: No books are currently available.")
-        return
-    
-    last_book_checked = None
     
     while True:
         user_input = input("\nYou: ").strip().lower()
-        
+
         # Check for friendly responses
         friendly_response = library.friendly_responses(user_input)
         if friendly_response:
@@ -134,44 +122,45 @@ def chatbot():
         if user_input == "exit":
             print("Chatbot: Thank you for using the Library Management Chatbot. Goodbye!")
             break
-        elif "borrow" in user_input:
-            if last_book_checked:
-                user_name = input("Chatbot: Please enter your name: ")
-                print("Chatbot:", library.borrow_book(last_book_checked, user_name))
+        elif "list books" in user_input or "available books" in user_input:
+            available_books = library.list_books()
+            if available_books:
+                print("Chatbot: Here are the available books:", ", ".join(available_books))
             else:
-                print("Chatbot: I couldn't determine which book you want to borrow. Please mention the book name.")
+                print("Chatbot: No books are currently available.")
+        elif "borrow" in user_input:
+            book_name = library.extract_book_name(user_input)
+            if book_name:
+                user_name = input("Chatbot: Please enter your name: ")
+                print("Chatbot:", library.borrow_book(book_name, user_name))
+            else:
+                print("Chatbot: Please specify the name of the book you wish to borrow.")
         elif "return" in user_input:
             book_name = library.extract_book_name(user_input)
             if book_name:
                 user_name = input("Chatbot: Please enter your name: ")
                 print("Chatbot:", library.return_book(book_name, user_name))
             else:
-                print("Chatbot: I didn't understand that. Please enter the book name clearly.")
+                print("Chatbot: Please specify the name of the book you wish to return.")
         elif "about" in user_input or "description" in user_input:
             book_name = library.extract_book_name(user_input)
             if book_name:
                 description = library.get_book_description(book_name)
                 print(f"Chatbot: Here's a description of '{book_name.title()}': {description}")
-                last_book_checked = book_name  # Remember the last book checked
             else:
                 print("Chatbot: I didn't understand that. Please enter the book name clearly.")
         else:
             book_name = library.extract_book_name(user_input)
             if book_name:
                 availability = library.check_availability(book_name)
-                if availability["available"]:
+                if availability and availability["available"]:
                     print(f"Chatbot: '{book_name.title()}' is available for borrowing.")
-                    last_book_checked = book_name  # Remember the last book checked
-                else:
+                elif availability:
                     print(f"Chatbot: '{book_name.title()}' is currently borrowed by {availability['borrowed_by']}.")
-                    last_book_checked = None
-            else:
-                suggested_book = library.suggest_book(user_input)
-                if suggested_book:
-                    print(f"Chatbot: I didn't understand that. Did you mean '{suggested_book}'? Please clarify your request.")
-                    last_book_checked = suggested_book
                 else:
-                    print("Chatbot: I didn't understand that. Please enter the book name clearly.")
+                    print(f"Chatbot: I'm sorry, but '{book_name.title()}' is not available in our library. Please check the title and try again.")
+            else:
+                print("Chatbot: I didn't understand that. Please enter the book name clearly.")
 
 if __name__ == "__main__":
     chatbot()
